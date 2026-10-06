@@ -59,9 +59,11 @@
   /* ---------- accès ---------- */
   var gate = $('[data-gate]');
   var holder = $('[data-doc-frame]');
-  function setAuth(ok) {
+  function setAuth(ok, admin) {
     if (ok) { html.setAttribute('data-auth', 'ok'); store.set('auth', '1'); }
     else { html.removeAttribute('data-auth'); store.del('auth'); }
+    if (ok && admin) { html.setAttribute('data-admin', 'ok'); store.set('admin', '1'); }
+    else if (!ok || admin === false) { html.removeAttribute('data-admin'); store.del('admin'); }
   }
   function toGate() {
     var next = location.pathname + location.search;
@@ -83,8 +85,8 @@
       if (!pw) { showGateError('Entrez le mot de passe qui vous a été transmis.'); return; }
       if (gBtn) gBtn.disabled = true;
       api('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) })
-        .then(function () {
-          gPass.value = ''; setAuth(true);
+        .then(function (res) {
+          gPass.value = ''; setAuth(true, !!res.admin);
           var next = new URLSearchParams(location.search).get('next');
           if (next && /^\/(?!\/)/.test(next)) { location.href = next; return; }
           history.replaceState(null, '', '/'); loadLibrary();
@@ -99,8 +101,8 @@
     if (gForm.setAttribute) gForm.setAttribute('novalidate', '');
   }
 
-  api('/session').then(function () {
-    setAuth(true);
+  api('/session').then(function (s) {
+    setAuth(true, !!s.admin);
     if (gate) loadLibrary(); else if (holder) loadDoc();
   }).catch(function (e) {
     if (e.status === 401) { setAuth(false); if (!gate) toGate(); else if (gate) { var p = $('[data-gate-password]', gate); if (p) setTimeout(function () { p.focus(); }, 60); } }
