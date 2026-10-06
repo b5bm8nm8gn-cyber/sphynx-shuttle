@@ -2,6 +2,7 @@
    Servi par l'app Webflow Cloud : /app/shuttle.js. API : /app/api. */
 (function () {
   'use strict';
+  (function () { var st = document.createElement('style'); st.setAttribute('data-shuttle', ''); st.textContent = '.cw-tags{display:flex;flex-wrap:wrap;gap:6px}\n.cw-badge{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:11px;font-weight:500;letter-spacing:.01em;background:var(--_sphynx---surface2);color:var(--_sphynx---ink2)}\n.cw-badge.is-ok{color:var(--_sphynx---ok)}\n.cw-badge.is-ok::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}\n.cw-item.is-resolved .cw-text,.cw-item.is-resolved .cw-name{color:var(--_sphynx---ink2)}\n.cw-item.is-hidden{opacity:.55}\n.cw-mod{display:flex;gap:6px;margin-top:2px}\n.cw-act{height:26px;padding:0 10px;border:0;border-radius:13px;background:var(--_sphynx---surface2);color:var(--_sphynx---ink2);font:inherit;font-size:12px;font-weight:500;cursor:pointer}\n.cw-act:hover{background:var(--_sphynx---surface3);color:var(--_sphynx---ink)}\n.cw-act:focus-visible{outline:2px solid currentColor;outline-offset:2px}'; document.head.appendChild(st); })();
   var html = document.documentElement;
   var BASE = (html.getAttribute('data-shuttle-base') || '/app').replace(/\/$/, '');
   var API = BASE + '/api';
@@ -123,7 +124,7 @@
         el.setAttribute('href', '/document?d=' + encodeURIComponent(d.slug));
         fill(el, 'title', d.title); fill(el, 'summary', d.summary || '');
         fill(el, 'kind', d.kind || 'Document'); fill(el, 'version', d.version ? d.version + ' · ' + fmtDay.format(new Date(d.updated_at)) : 'Mis à jour le ' + fmtDay.format(new Date(d.updated_at)));
-        fill(el, 'comments', d.comments ? plural(d.comments, 'commentaire', 'commentaires') : 'Aucun commentaire');
+        fill(el, 'comments', d.comments ? plural(d.comments, 'commentaire', 'commentaires') + (d.resolved ? ', dont ' + plural(d.resolved, 'validé', 'validés') : '') : 'Aucun commentaire');
         var c = $('[data-f="comments"]', el); if (c && d.last_comment) c.title = 'Dernier commentaire le ' + fmtLong.format(new Date(d.last_comment));
         var s = $('[data-f="summary"]', el); if (s) s.style.display = d.summary ? '' : 'none';
         list.appendChild(el);
@@ -180,28 +181,61 @@
     }
     if (ctx) ctx.textContent = docTitle;
     if (count) count.textContent = String(initialCount);
-    var items = [], loaded = false, busy = false, toastTimer;
+    var items = [], loaded = false, busy = false, toastTimer, isAdmin = html.getAttribute('data-admin') === 'ok';
 
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
     function render() {
-      $$('.cw-item', list).forEach(function (el) { el.parentNode.removeChild(el); });
-      if (count) count.textContent = String(items.length);
+      $$('.cw-item', list).forEach(function (x) { x.parentNode.removeChild(x); });
+      var visible = items.filter(function (c) { return !c.hidden; });
+      if (count) count.textContent = String(visible.length);
       if (empty) {
         empty.style.display = items.length ? 'none' : '';
         empty.textContent = loaded ? 'Aucun commentaire sur ce document pour l’instant. Le premier sera le vôtre.' : 'Chargement des commentaires…';
       }
       items.forEach(function (c) {
         if (!tpl) return;
-        var el = tpl.cloneNode(true), d = new Date(c.created_at);
-        var n = $('[data-cw-name]', el), t = $('[data-cw-time]', el), m = $('[data-cw-text]', el);
+        var item = tpl.cloneNode(true), d = new Date(c.created_at);
+        var n = $('[data-cw-name]', item), t = $('[data-cw-time]', item), m = $('[data-cw-text]', item), h = $('.cw-item-h', item) || item;
         if (n) n.textContent = c.name;
         if (t) { t.textContent = fmt.format(d); t.title = fmtLong.format(d); }
         if (m) m.textContent = c.message;
-        list.appendChild(el);
+        var resolved = c.status === 'resolved';
+        item.classList.toggle('is-resolved', resolved);
+        item.classList.toggle('is-hidden', !!c.hidden);
+        if (resolved || c.hidden) {
+          var tags = el('div', 'cw-tags');
+          if (resolved) {
+            var b = el('span', 'cw-badge is-ok', 'Validé' + (c.resolved_version ? ' en ' + c.resolved_version : ''));
+            if (c.resolved_at) b.title = 'Validé le ' + fmtLong.format(new Date(c.resolved_at));
+            tags.appendChild(b);
+          }
+          if (c.hidden) tags.appendChild(el('span', 'cw-badge', 'Masqué pour Sopht'));
+          h.parentNode.insertBefore(tags, h.nextSibling);
+        }
+        if (isAdmin) {
+          var mod = el('div', 'cw-mod');
+          var v = el('button', 'cw-act', resolved ? 'Rouvrir' : 'Valider'); v.type = 'button';
+          v.title = resolved ? 'Remettre ce commentaire à traiter' : 'Marquer comme corrigé dans la version en ligne';
+          v.addEventListener('click', function () { moderate(c, { status: resolved ? 'open' : 'resolved' }); });
+          var k = el('button', 'cw-act', c.hidden ? 'Afficher' : 'Masquer'); k.type = 'button';
+          k.title = c.hidden ? 'Rendre ce commentaire visible pour Sopht' : 'Masquer ce commentaire pour Sopht (il reste archivé)';
+          k.addEventListener('click', function () { moderate(c, { hidden: !c.hidden }); });
+          mod.appendChild(v); mod.appendChild(k); item.appendChild(mod);
+        }
+        list.appendChild(item);
       });
+    }
+    function moderate(c, patch) {
+      api('/comments?id=' + encodeURIComponent(c.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) })
+        .then(function (res) {
+          items = items.map(function (x) { return x.id === c.id ? res.comment : x; }); render();
+          showToast(patch.status === 'resolved' ? 'Commentaire validé.' : patch.status === 'open' ? 'Commentaire rouvert.' : patch.hidden ? 'Commentaire masqué pour Sopht.' : 'Commentaire de nouveau visible.');
+        })
+        .catch(function (e) { showToast(e.message || 'Action impossible.'); });
     }
     function load() {
       return api('/comments?doc=' + encodeURIComponent(docSlug))
-        .then(function (data) { items = data.comments || []; loaded = true; render(); })
+        .then(function (data) { isAdmin = !!data.admin; items = data.comments || []; loaded = true; render(); })
         .catch(function (e) {
           if (e.status === 401) { setAuth(false); toGate(); return; }
           loaded = true; items = []; render();

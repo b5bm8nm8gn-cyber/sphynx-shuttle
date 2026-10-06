@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ request, params }) => {
   const slug = String(params.slug || "");
   const d = SLUG.test(slug) ? await getDoc(slug) : null;
   if (!d || (d.hidden && !s.admin)) return json({ error: "Document introuvable." }, 404);
-  const c = await env.DB.prepare("SELECT COUNT(*) AS n, MAX(created_at) AS last FROM comments WHERE doc = ?1")
-    .bind(slug).first<{ n: number; last: string | null }>();
-  return json({ doc: publicDoc(d, c?.n ?? 0, c?.last ?? null) });
+  const c = await env.DB.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(status = 'resolved'), 0) AS r, MAX(created_at) AS last FROM comments WHERE doc = ?1 AND hidden = 0")
+    .bind(slug).first<{ n: number; r: number; last: string | null }>();
+  return json({ doc: publicDoc(d, c?.n ?? 0, c?.last ?? null, c?.r ?? 0), admin: s.admin });
 };

@@ -148,7 +148,7 @@ async function refresh() {
   docs = (await api('/docs?all=1')).docs;
   $('#list').innerHTML = docs.length ? docs.map((d) => `<li class="item${d.hidden ? ' is-hidden' : ''}">
       <span class="t">${esc(d.title)}</span>
-      <span class="m">${[d.version, d.kind].filter(Boolean).map(esc).join(' · ')} · mis à jour le ${fmt.format(new Date(d.updated_at))} · ${d.comments ? d.comments + ' commentaire' + (d.comments > 1 ? 's' : '') : 'aucun commentaire'}${d.hidden ? ' · masqué' : ''}</span>
+      <span class="m">${[d.version, d.kind].filter(Boolean).map(esc).join(' · ')} · mis à jour le ${fmt.format(new Date(d.updated_at))} · ${d.comments ? d.comments + ' commentaire' + (d.comments > 1 ? 's' : '') + (d.resolved ? ', dont ' + d.resolved + ' validé' + (d.resolved > 1 ? 's' : '') : '') : 'aucun commentaire'}${d.hidden ? ' · masqué' : ''}</span>
       <span class="a"><a class="btn btn-ghost" href="/document?d=${encodeURIComponent(d.slug)}" target="_blank" rel="noopener">Ouvrir</a>
       <button class="btn btn-ghost" data-act="${d.hidden ? 'show' : 'hide'}" data-slug="${esc(d.slug)}">${d.hidden ? 'Afficher' : 'Masquer'}</button>
       <button class="btn btn-ghost" data-act="del" data-slug="${esc(d.slug)}">Supprimer</button></span></li>`).join('')
