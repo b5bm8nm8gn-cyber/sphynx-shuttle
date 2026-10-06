@@ -54,7 +54,7 @@
     docsCount.textContent = n ? plural(n, 'document', 'documents') : '';
   }
   if (countEls.length) {
-    fetch(API + '/counts', { headers: { Accept: 'application/json' } })
+    fetch(API + '/counts', { cache: 'no-store', headers: { Accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data) return;
@@ -133,7 +133,7 @@
     });
   }
   function load() {
-    return fetch(API + '/comments?doc=' + encodeURIComponent(docSlug), { headers: { Accept: 'application/json' } })
+    return fetch(API + '/comments?doc=' + encodeURIComponent(docSlug), { cache: 'no-store', headers: { Accept: 'application/json' } })
       .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .then(function (data) { items = data.comments || []; loaded = true; render(); })
       .catch(function () { loaded = true; items = []; render(); if (empty) { empty.style.display = ''; empty.textContent = 'Les commentaires ne sont pas joignables pour le moment. Réessayez dans un instant.'; } });
@@ -176,7 +176,7 @@
     clearError(); busy = true; submit.disabled = true;
     store.set('name', name);
     fetch(API + '/comments', {
-      method: 'POST',
+      method: 'POST', cache: 'no-store',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ doc: docSlug, docTitle: docTitle, name: name, message: message, page: location.href })
     })
