@@ -3,7 +3,7 @@
 App Astro montée sur le site Webflow « sphynx shuttle » au chemin `/app`. Elle porte l'accès par mot de passe, les documents HTML et les commentaires.
 
 ## Publier un document (le plus simple)
-1. Ouvrir `/app/admin` sur le site (ex. https://sphynx-shuttle.webflow.io/app/admin), entrer le code administrateur.
+1. Ouvrir `/app/admin` sur le site (ex. https://sopht2027.webflow.io/app/admin), entrer le code administrateur.
 2. Déposer le fichier .html : titre et version sont lus dans le fichier. Si un document du même nom existe, la nouvelle version le remplace et garde son fil de commentaires.
 3. Cliquer sur Publier : c'est en ligne immédiatement. Masquer / Supprimer depuis la liste.
 

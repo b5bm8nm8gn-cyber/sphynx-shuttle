@@ -106,7 +106,7 @@
     setAuth(true, !!s.admin);
     if (gate) loadLibrary(); else if (holder) loadDoc();
   }).catch(function (e) {
-    if (e.status === 401) { setAuth(false); if (!gate) toGate(); else if (gate) { var p = $('[data-gate-password]', gate); if (p) setTimeout(function () { p.focus(); }, 60); } }
+    if (e.status === 401) { setAuth(false); if (holder && !$('[data-public]')) toGate(); else if (gate) { var p = $('[data-gate-password]', gate); if (p) setTimeout(function () { p.focus(); }, 60); } }
     else if (gate) { setAuth(store.get('auth') === '1'); if (html.getAttribute('data-auth') === 'ok') loadLibrary(); }
   });
 

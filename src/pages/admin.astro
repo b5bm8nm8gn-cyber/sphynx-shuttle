@@ -68,7 +68,7 @@ input:focus,textarea:focus,select:focus{outline:0;border-color:var(--ink);box-sh
 <section class="gate" id="gate" hidden>
   <p class="eyebrow">Sphynx Shuttle</p>
   <h1>Publication</h1>
-  <p class="lede" style="margin:0 auto">Réservé à Sphynx Studio. Entrez le code administrateur.</p>
+  <p class="lede" id="gate-lede" style="margin:0 auto">Réservé à Sphynx Studio. Entrez le code administrateur.</p>
   <form id="gate-form">
     <input id="gate-pass" type="password" placeholder="Code administrateur" autocomplete="current-password" required>
     <button class="btn" type="submit">Entrer</button>
@@ -129,10 +129,16 @@ async function api(path, opts = {}) {
 async function start() {
   try {
     const s = await api('/session');
-    if (!s.admin) throw new Error();
+    if (!s.admin) throw Object.assign(new Error(), { client: true });
     $('#gate').hidden = true; $('#app').hidden = false; $('#logout').hidden = false;
     await refresh();
-  } catch { $('#gate').hidden = false; $('#app').hidden = true; setTimeout(() => $('#gate-pass').focus(), 50); }
+  } catch (e) {
+    $('#gate').hidden = false; $('#app').hidden = true;
+    $('#gate-lede').textContent = e && e.client
+      ? 'Vous êtes connecté avec l’accès Sopht. Entrez le code administrateur pour publier.'
+      : 'Réservé à Sphynx Studio. Entrez le code administrateur.';
+    setTimeout(() => $('#gate-pass').focus(), 50);
+  }
 }
 $('#gate-form').addEventListener('submit', async (e) => {
   e.preventDefault();
