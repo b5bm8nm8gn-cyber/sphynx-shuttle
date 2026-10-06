@@ -1,30 +1,8 @@
 <meta name="robots" content="noindex,nofollow">
 <script>
-(function(){var h=document.documentElement,t=null;try{t=localStorage.getItem('sphynx-shuttle:theme')}catch(e){}
+(function(){var h=document.documentElement,t=null,a=null;try{t=localStorage.getItem('sphynx-shuttle:theme');a=localStorage.getItem('sphynx-shuttle:auth')}catch(e){}
+if(a==='1')h.setAttribute('data-auth','ok');
 var d=t?t==='dark':!!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);h.setAttribute('data-theme',d?'dark':'light');
 if(d){var mo=new MutationObserver(function(){var s=document.querySelectorAll('.shuttle:not(.is-dark)');for(var i=0;i<s.length;i++)s[i].classList.add('is-dark')});mo.observe(h,{childList:true,subtree:true});document.addEventListener('DOMContentLoaded',function(){mo.disconnect()})}})();
 </script>
-<style>
-html,body{margin:0;background:#fff}
-html[data-theme="dark"],html[data-theme="dark"] body{background:#000;color-scheme:dark}
-.shuttle{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-.tt-knob{transition:left .18s cubic-bezier(.2,.7,.2,1)}
-.theme-toggle .tt-sun{display:none}
-.theme-toggle[aria-checked="true"] .tt-sun{display:block}
-.theme-toggle[aria-checked="true"] .tt-moon{display:none}
-.theme-toggle[aria-checked="true"] .tt-knob{left:24px}
-.theme-toggle:focus-visible,.cw-toggle:focus-visible,.icon-btn:focus-visible,.btn-primary:focus-visible,.row:focus-visible,.back:focus-visible{outline:2px solid currentColor;outline-offset:3px}
-.cw-list .cw-item:first-of-type{border-top:0}
-.cw-panel.is-open{display:flex;animation:sh-pop .28s cubic-bezier(.2,.7,.2,1) both;transform-origin:bottom right}
-.toast.is-on{display:flex;animation:sh-pop .25s cubic-bezier(.2,.7,.2,1) both}
-.cw-error.is-on{display:block}
-.cw-input.is-invalid,.cw-textarea.is-invalid{border-color:var(--_sphynx---err)}
-.cw-input,.cw-textarea{font-family:inherit}
-.cw-input::placeholder,.cw-textarea::placeholder{color:var(--_sphynx---ink3)}
-.btn-primary[disabled]{opacity:.45;cursor:default}
-.docframe{flex:1;display:block;width:100%;height:100%;border:0;background:var(--_sphynx---bg)}
-@keyframes sh-pop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
-.toast.is-on{animation-name:sh-toast}
-@keyframes sh-toast{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
-@media (prefers-reduced-motion:reduce){.cw-panel.is-open,.toast.is-on,.tt-knob{animation:none!important;transition:none!important}}
-</style>
+<!-- + feuille de style des états (voir Webflow > Site settings > Custom code) -->
