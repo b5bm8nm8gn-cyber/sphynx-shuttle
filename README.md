@@ -1,6 +1,6 @@
 # Sphynx Shuttle · module serveur (Webflow Cloud)
 
-App Astro montée sur le site Webflow « sphynx shuttle » au chemin `/app`. Elle porte l'accès par mot de passe, les documents HTML et les commentaires.
+App Astro montée sur le site Webflow « sopht » au chemin `/app`. Elle porte les documents HTML, les commentaires et la page de publication.
 
 ## Publier un document (le plus simple)
 1. Ouvrir `/app/admin` sur le site (ex. https://sopht2027.webflow.io/app/admin), entrer le code administrateur.
@@ -8,13 +8,13 @@ App Astro montée sur le site Webflow « sphynx shuttle » au chemin `/app`. Ell
 3. Cliquer sur Publier : c'est en ligne immédiatement. Masquer / Supprimer depuis la liste.
 
 ## Accès
-- Mot de passe de l'espace client et code administrateur : empreintes SHA-256 dans `src/lib/auth.ts` (pour changer : `printf '%s' 'nouveau' | shasum -a 256`, remplacer, pousser sur main).
-- Session : cookie HttpOnly de 60 jours. Sans session, `/app/api/*` répond 401 et `/app/d/*` affiche « Accès réservé ».
+- Espace Sopht : protection par mot de passe du site Webflow (Paramètres du site > Protection par mot de passe). L'app ne vérifie aucun mot de passe client.
+- Publication et modération : code administrateur, empreinte SHA-256 dans `src/lib/auth.ts` (pour changer : `printf '%s' 'nouveau' | shasum -a 256`, remplacer, pousser sur main). Session admin : cookie HttpOnly de 60 jours ; sans elle, les routes admin et la modération répondent 403.
 
 ## API
-- `POST /app/api/login` { password }, `POST /app/api/logout`, `GET /app/api/session`
+- `POST /app/api/login` { password = code admin }, `POST /app/api/logout`, `GET /app/api/session` → { admin }
 - `GET /app/api/docs`, `GET /app/api/docs/<slug>`, `GET /app/d/<slug>` (le fichier HTML)
-- `GET|POST /app/api/comments?doc=<slug>`
+- `GET|POST /app/api/comments?doc=<slug>`, admin : `PATCH|DELETE /app/api/comments?id=`
 - Admin : `POST /app/api/admin/docs?title=&kind=&version=&summary=&slug=` (corps = fichier HTML), `PATCH|DELETE /app/api/admin/docs/<slug>`
 
 ## Stockage

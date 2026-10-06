@@ -11,10 +11,9 @@ const page = (title: string, text: string, status: number) =>
     { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } }
   );
 
-// GET /d/<slug> → le fichier HTML du document, seulement avec une session valide
+// GET /d/<slug> → le fichier HTML du document (les documents masqués ne sont servis qu'à l'administration)
 export const GET: APIRoute = async ({ request, params }) => {
   const s = await session(request);
-  if (!s.client) return page("Accès réservé", "Accès réservé. Ouvrez l’espace Sphynx Shuttle et entrez le mot de passe.", 401);
   const slug = String(params.slug || "");
   const d = SLUG.test(slug) ? await getDoc(slug) : null;
   if (!d || (d.hidden && !s.admin)) return page("Document introuvable", "Ce document n’existe pas ou n’est plus partagé.", 404);

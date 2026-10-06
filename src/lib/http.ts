@@ -5,7 +5,6 @@ export function json(data: unknown, status = 200, extra?: HeadersInit): Response
   return new Response(JSON.stringify(data), { status, headers });
 }
 
-export const unauthorized = () => json({ error: "Accès réservé. Entrez le mot de passe." }, 401);
 export const forbidden = () => json({ error: "Réservé à l’administration Sphynx." }, 403);
 
 export const SLUG = /^[a-z0-9][a-z0-9-]{0,79}$/;

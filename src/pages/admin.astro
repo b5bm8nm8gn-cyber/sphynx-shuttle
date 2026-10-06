@@ -129,22 +129,15 @@ async function api(path, opts = {}) {
 async function start() {
   try {
     const s = await api('/session');
-    if (!s.admin) throw Object.assign(new Error(), { client: true });
+    if (!s.admin) throw new Error();
     $('#gate').hidden = true; $('#app').hidden = false; $('#logout').hidden = false;
     await refresh();
-  } catch (e) {
-    $('#gate').hidden = false; $('#app').hidden = true;
-    $('#gate-lede').textContent = e && e.client
-      ? 'Vous êtes connecté avec l’accès Sopht. Entrez le code administrateur pour publier.'
-      : 'Réservé à Sphynx Studio. Entrez le code administrateur.';
-    setTimeout(() => $('#gate-pass').focus(), 50);
-  }
+  } catch { $('#gate').hidden = false; $('#app').hidden = true; setTimeout(() => $('#gate-pass').focus(), 50); }
 }
 $('#gate-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
     const r = await api('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('#gate-pass').value }) });
-    if (!r.admin) throw new Error('Ce mot de passe ouvre l’espace client, pas la publication.');
     $('#gate-pass').value = ''; start();
   } catch (err) { $('#gate-err').textContent = err.message; $('#gate-err').hidden = false; }
 });

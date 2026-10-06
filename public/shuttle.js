@@ -1,4 +1,4 @@
-/* Sphynx Shuttle : script des pages Webflow (accès, thème, bibliothèque, visionneuse, commentaires).
+/* Sphynx Shuttle : script des pages Webflow (session admin, thème, bibliothèque, visionneuse, commentaires).
    Servi par l'app Webflow Cloud : /app/shuttle.js. API : /app/api. */
 (function () {
   'use strict';
@@ -58,56 +58,21 @@
   paintTheme();
 
   /* ---------- accès ---------- */
-  var gate = $('[data-gate]');
+  // L'espace Sopht est protégé par le mot de passe du site Webflow. L'app ne connaît que la session
+  // administrateur (publication et modération), signalée par data-admin="ok" sur <html>.
   var holder = $('[data-doc-frame]');
-  function setAuth(ok, admin) {
-    if (ok) { html.setAttribute('data-auth', 'ok'); store.set('auth', '1'); }
-    else { html.removeAttribute('data-auth'); store.del('auth'); }
-    if (ok && admin) { html.setAttribute('data-admin', 'ok'); store.set('admin', '1'); }
-    else if (!ok || admin === false) { html.removeAttribute('data-admin'); store.del('admin'); }
-  }
-  function toGate() {
-    var next = location.pathname + location.search;
-    location.replace('/' + (next && next !== '/' ? '?next=' + encodeURIComponent(next) : ''));
+  html.setAttribute('data-auth', 'ok'); store.del('auth');
+  function setAdmin(admin) {
+    if (admin) { html.setAttribute('data-admin', 'ok'); store.set('admin', '1'); }
+    else { html.removeAttribute('data-admin'); store.del('admin'); }
   }
   $$('[data-logout]').forEach(function (b) {
     b.removeAttribute('href');
-    activate(b, function () { api('/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(function () {}).then(function () { setAuth(false); location.href = '/'; }); });
+    activate(b, function () { api('/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(function () {}).then(function () { setAdmin(false); location.reload(); }); });
   });
 
-  if (gate) {
-    var gForm = $('form', gate) || gate, gPass = $('[data-gate-password]', gate), gErr = $('[data-gate-error]', gate), gBtn = $('[data-gate-submit]', gate);
-    if (gBtn && gBtn.tagName === 'INPUT') {
-      var nb = document.createElement('button'); nb.type = 'button'; nb.className = gBtn.className.replace(/\bw-\S+/g, '').trim(); nb.textContent = gBtn.value || 'Entrer';
-      gBtn.parentNode.replaceChild(nb, gBtn); gBtn = nb;
-    }
-    var tryLogin = function () {
-      var pw = (gPass && gPass.value || '').trim();
-      if (!pw) { showGateError('Entrez le mot de passe qui vous a été transmis.'); return; }
-      if (gBtn) gBtn.disabled = true;
-      api('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) })
-        .then(function (res) {
-          gPass.value = ''; setAuth(true, !!res.admin);
-          var next = new URLSearchParams(location.search).get('next');
-          if (next && /^\/(?!\/)/.test(next)) { location.href = next; return; }
-          history.replaceState(null, '', '/'); loadLibrary();
-        })
-        .catch(function (e) { showGateError(e.status === 401 ? 'Mot de passe incorrect. En cas de doute, écrivez à max@sphynx.studio.' : 'Connexion impossible pour le moment. Réessayez.'); if (gPass) gPass.select(); })
-        .then(function () { if (gBtn) gBtn.disabled = false; });
-    };
-    var showGateError = function (t) { if (gErr) { gErr.textContent = t; gErr.classList.add('is-on'); } gate.classList.remove('is-shake'); void gate.offsetWidth; gate.classList.add('is-shake'); };
-    if (gPass) gPass.addEventListener('input', function () { if (gErr) gErr.classList.remove('is-on'); });
-    if (gBtn) gBtn.addEventListener('click', function (e) { e.preventDefault(); tryLogin(); });
-    gForm.addEventListener('submit', function (e) { e.preventDefault(); e.stopPropagation(); tryLogin(); }, true);
-    if (gForm.setAttribute) gForm.setAttribute('novalidate', '');
-  }
-
-  api('/session').then(function (s) {
-    setAuth(true, !!s.admin);
-    if (gate) loadLibrary(); else if (holder) loadDoc();
-  }).catch(function (e) {
-    if (e.status === 401) { setAuth(false); if (holder && !$('[data-public]')) toGate(); else if (gate) { var p = $('[data-gate-password]', gate); if (p) setTimeout(function () { p.focus(); }, 60); } }
-    else if (gate) { setAuth(store.get('auth') === '1'); if (html.getAttribute('data-auth') === 'ok') loadLibrary(); }
+  api('/session').then(function (s) { setAdmin(!!s.admin); }).catch(function () {}).then(function () {
+    if (holder) loadDoc(); else loadLibrary();
   });
 
   /* ---------- bibliothèque ---------- */
@@ -132,7 +97,6 @@
       if (count) count.textContent = docs.length ? plural(docs.length, 'document', 'documents') : '';
       if (empty) { empty.style.display = docs.length ? 'none' : ''; empty.textContent = 'Aucun document partagé pour l’instant.'; }
     }).catch(function (e) {
-      if (e.status === 401) { setAuth(false); return; }
       if (empty) { empty.style.display = ''; empty.textContent = 'La bibliothèque n’est pas joignable pour le moment. Réessayez dans un instant.'; }
     });
   }
@@ -158,7 +122,6 @@
       if (msg) msg.style.display = 'none';
       initComments(d.comments || 0);
     }).catch(function (e) {
-      if (e.status === 401) { setAuth(false); toGate(); return; }
       if (msg) msg.textContent = e.status === 404 ? 'Ce document n’existe pas ou n’est plus partagé.' : 'Le document n’est pas joignable pour le moment. Réessayez dans un instant.';
       if (open) open.style.display = 'none';
     });
@@ -237,7 +200,6 @@
       return api('/comments?doc=' + encodeURIComponent(docSlug))
         .then(function (data) { isAdmin = !!data.admin; items = data.comments || []; loaded = true; render(); })
         .catch(function (e) {
-          if (e.status === 401) { setAuth(false); toGate(); return; }
           loaded = true; items = []; render();
           if (empty) { empty.style.display = ''; empty.textContent = 'Les commentaires ne sont pas joignables pour le moment. Réessayez dans un instant.'; }
         });
@@ -279,7 +241,7 @@
           textIn.value = ''; list.scrollTop = 0; textIn.focus();
           showToast('Commentaire signé et enregistré.');
         })
-        .catch(function (e) { if (e.status === 401) { setAuth(false); toGate(); return; } showError(e.message || 'Enregistrement impossible. Réessayez dans un instant.'); })
+        .catch(function (e) { showError(e.message || 'Enregistrement impossible. Réessayez dans un instant.'); })
         .then(function () { busy = false; submit.disabled = false; });
     }
     if (form) {

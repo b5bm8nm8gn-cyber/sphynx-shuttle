@@ -1,10 +1,10 @@
-// Accès Sphynx Shuttle : mot de passe client (espace Sopht) et code administrateur (Sphynx).
-// Seules les empreintes SHA-256 figurent ici. Pour changer un mot de passe : remplacer l'empreinte
-// (printf '%s' 'NouveauMotDePasse' | shasum -a 256), pousser sur main ; les sessions en cours tombent.
-const CLIENT_HASH = "e1e38120c0dc6ce7001a1713dfc546d93221ded3124e9c9d1eb88bdaace4a815";
+// Accès Sphynx Shuttle. L'espace Sopht est protégé par le mot de passe du site Webflow
+// (Paramètres du site > Protection par mot de passe) ; l'app ne garde que le code administrateur
+// (publication et modération). Seule son empreinte SHA-256 figure ici. Pour le changer : remplacer
+// l'empreinte (printf '%s' 'NouveauCode' | shasum -a 256), pousser sur main ; la session admin tombe.
 const ADMIN_HASH = "d99b55a5c48b076b6b373515565a0d9bd360ca9358630777ebd5b003069017b8";
 
-const CLIENT_COOKIE = "sh_c";
+const OLD_CLIENT_COOKIE = "sh_c";
 const ADMIN_COOKIE = "sh_a";
 const MAX_AGE = 60 * 60 * 24 * 60; // 60 jours
 
@@ -15,11 +15,8 @@ export async function sha256(s: string): Promise<string> {
 
 const token = (hash: string) => sha256(hash + ":sphynx-shuttle-session-v1");
 
-export async function roleFor(password: string): Promise<"admin" | "client" | null> {
-  const h = await sha256(password.trim());
-  if (h === ADMIN_HASH) return "admin";
-  if (h === CLIENT_HASH) return "client";
-  return null;
+export async function isAdminCode(code: string): Promise<boolean> {
+  return (await sha256(code.trim())) === ADMIN_HASH;
 }
 
 function readCookie(request: Request, name: string): string {
@@ -31,19 +28,16 @@ function readCookie(request: Request, name: string): string {
   return "";
 }
 
-export async function session(request: Request): Promise<{ client: boolean; admin: boolean }> {
-  const admin = readCookie(request, ADMIN_COOKIE) === (await token(ADMIN_HASH));
-  const client = admin || readCookie(request, CLIENT_COOKIE) === (await token(CLIENT_HASH));
-  return { client, admin };
+export async function session(request: Request): Promise<{ admin: boolean }> {
+  return { admin: readCookie(request, ADMIN_COOKIE) === (await token(ADMIN_HASH)) };
 }
 
 const cookie = (name: string, value: string, maxAge: number) =>
   `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
 
-export async function loginCookies(role: "admin" | "client"): Promise<string[]> {
-  const out = [cookie(CLIENT_COOKIE, await token(CLIENT_HASH), MAX_AGE)];
-  if (role === "admin") out.push(cookie(ADMIN_COOKIE, await token(ADMIN_HASH), MAX_AGE));
-  return out;
+export async function loginCookies(): Promise<string[]> {
+  return [cookie(ADMIN_COOKIE, await token(ADMIN_HASH), MAX_AGE)];
 }
 
-export const logoutCookies = () => [cookie(CLIENT_COOKIE, "", 0), cookie(ADMIN_COOKIE, "", 0)];
+// Efface aussi l'ancien cookie client (sh_c), abandonné le 6 octobre 2026.
+export const logoutCookies = () => [cookie(OLD_CLIENT_COOKIE, "", 0), cookie(ADMIN_COOKIE, "", 0)];
