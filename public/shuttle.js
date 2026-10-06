@@ -104,9 +104,9 @@
   /* ---------- visionneuse ---------- */
   var docSlug = '', docTitle = 'Document';
   function loadDoc() {
-    var msg = $('[data-doc-msg]', holder), open = $('[data-doc-open]');
+    var msg = $('[data-doc-msg]', holder), open = $('[data-doc-open]'), dl = $('[data-doc-download]');
     docSlug = (new URLSearchParams(location.search).get('d') || '').toLowerCase();
-    if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(docSlug)) { if (msg) msg.textContent = 'Document introuvable.'; if (open) open.style.display = 'none'; return; }
+    if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(docSlug)) { if (msg) msg.textContent = 'Document introuvable.'; if (open) open.style.display = 'none'; if (dl) dl.style.display = 'none'; return; }
     api('/docs/' + docSlug).then(function (data) {
       var d = data.doc; docTitle = d.title;
       document.title = d.title + ' · Sphynx Shuttle';
@@ -114,6 +114,7 @@
       $$('[data-f="version"]').forEach(function (el) { el.style.display = d.version ? '' : 'none'; });
       var src = BASE + '/d/' + encodeURIComponent(d.slug) + '?v=' + encodeURIComponent(d.updated_at);
       if (open) { open.href = src; open.target = '_blank'; open.rel = 'noopener'; }
+      if (dl) { dl.href = src + '&download=1'; dl.setAttribute('download', ''); }
       frameEl = document.createElement('iframe');
       frameEl.className = 'docframe'; frameEl.title = d.title; frameEl.src = src;
       frameEl.setAttribute('allow', 'clipboard-write; fullscreen');
@@ -124,6 +125,7 @@
     }).catch(function (e) {
       if (msg) msg.textContent = e.status === 404 ? 'Ce document n’existe pas ou n’est plus partagé.' : 'Le document n’est pas joignable pour le moment. Réessayez dans un instant.';
       if (open) open.style.display = 'none';
+      if (dl) dl.style.display = 'none';
     });
   }
 

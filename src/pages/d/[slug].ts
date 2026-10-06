@@ -12,20 +12,24 @@ const page = (title: string, text: string, status: number) =>
   );
 
 // GET /d/<slug> → le fichier HTML du document (les documents masqués ne sont servis qu'à l'administration)
-export const GET: APIRoute = async ({ request, params }) => {
+// GET /d/<slug>?download=1 → même fichier, proposé au téléchargement (nom : <slug>-<version>.html)
+export const GET: APIRoute = async ({ request, params, url }) => {
   const s = await session(request);
   const slug = String(params.slug || "");
   const d = SLUG.test(slug) ? await getDoc(slug) : null;
   if (!d || (d.hidden && !s.admin)) return page("Document introuvable", "Ce document n’existe pas ou n’est plus partagé.", 404);
   const file = await readFile(d, request);
   if (!file) return page("Fichier manquant", "Le fichier de ce document est introuvable.", 404);
+  const version = (d.version || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const filename = `${slug}${version ? "-" + version : ""}.html`;
+  const disposition = url.searchParams.has("download") ? "attachment" : "inline";
   return new Response(file.body, {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "private, no-cache",
       "X-Robots-Tag": "noindex",
-      "Content-Disposition": `inline; filename="${slug}.html"`,
+      "Content-Disposition": `${disposition}; filename="${filename}"`,
     },
   });
 };
