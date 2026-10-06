@@ -15,6 +15,7 @@ const page = (title: string, text: string, status: number) =>
 // GET /d/<slug>?download=1 → même fichier, proposé au téléchargement (nom : <slug>-<version>.html)
 export const GET: APIRoute = async ({ request, params, url }) => {
   const s = await session(request);
+  if (!s.viewer) return page("Accès réservé", "Accès réservé. Ouvrez l’espace Sopht pour consulter ce document.", 401);
   const slug = String(params.slug || "");
   const d = SLUG.test(slug) ? await getDoc(slug) : null;
   if (!d || (d.hidden && !s.admin)) return page("Document introuvable", "Ce document n’existe pas ou n’est plus partagé.", 404);

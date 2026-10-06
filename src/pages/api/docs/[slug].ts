@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
-import { json, SLUG } from "../../../lib/http";
+import { json, locked, SLUG } from "../../../lib/http";
 import { session } from "../../../lib/auth";
 import { getDoc, publicDoc } from "../../../lib/docs";
 
@@ -8,6 +8,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ request, params }) => {
   const s = await session(request);
+  if (!s.viewer) return locked();
   const slug = String(params.slug || "");
   const d = SLUG.test(slug) ? await getDoc(slug) : null;
   if (!d || (d.hidden && !s.admin)) return json({ error: "Document introuvable." }, 404);

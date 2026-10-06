@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
-import { json, forbidden, SLUG, clean } from "../../lib/http";
+import { json, forbidden, locked, SLUG, clean } from "../../lib/http";
 import { session } from "../../lib/auth";
 
 export const prerender = false;
@@ -15,6 +15,7 @@ const COLS = "id, doc, doc_title, name, message, created_at, status, resolved_at
 // Les commentaires masqués ne sont renvoyés qu'à l'administration.
 export const GET: APIRoute = async ({ request, url }) => {
   const s = await session(request);
+  if (!s.viewer) return locked();
   const doc = url.searchParams.get("doc") ?? "";
   if (!SLUG.test(doc)) return json({ error: "Document inconnu." }, 400);
   const { results } = await env.DB.prepare(
@@ -25,6 +26,7 @@ export const GET: APIRoute = async ({ request, url }) => {
 
 // POST /api/comments  { doc, docTitle, name, message }  → enregistre un commentaire signé
 export const POST: APIRoute = async ({ request }) => {
+  if (!(await session(request)).viewer) return locked();
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch { return json({ error: "Requête illisible." }, 400); }
   if (clean(body.website, 200)) return json({ ok: true }, 201); // pot de miel anti-robots

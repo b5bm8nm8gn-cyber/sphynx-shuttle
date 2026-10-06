@@ -71,7 +71,12 @@
     activate(b, function () { api('/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(function () {}).then(function () { setAdmin(false); location.reload(); }); });
   });
 
-  api('/session').then(function (s) { setAdmin(!!s.admin); }).catch(function () {}).then(function () {
+  // Clé de lecture : présente seulement dans le code d'en-tête des pages Webflow protégées (Home, Document).
+  var keyMeta = $('meta[name="shuttle-key"]');
+  var unlock = keyMeta && keyMeta.content
+    ? api('/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: keyMeta.content }) }).catch(function () {})
+    : Promise.resolve();
+  unlock.then(function () { return api('/session'); }).then(function (s) { setAdmin(!!s.admin); }).catch(function () {}).then(function () {
     if (holder) loadDoc(); else loadLibrary();
   });
 

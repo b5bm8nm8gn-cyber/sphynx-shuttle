@@ -1,10 +1,16 @@
-// Accès Sphynx Shuttle. L'espace Sopht est protégé par le mot de passe du site Webflow
-// (Paramètres du site > Protection par mot de passe) ; l'app ne garde que le code administrateur
-// (publication et modération). Seule son empreinte SHA-256 figure ici. Pour le changer : remplacer
-// l'empreinte (printf '%s' 'NouveauCode' | shasum -a 256), pousser sur main ; la session admin tombe.
+// Accès Sphynx Shuttle.
+// 1. Espace Sopht : mot de passe du site Webflow (Paramètres du site > Protection par mot de passe).
+//    Cette protection ne couvre pas l'app (/app). Les pages Webflow protégées (Home, Document) portent
+//    donc une clé de lecture dans leur code d'en-tête (<meta name="shuttle-key">) : le script l'échange
+//    contre un cookie (POST /api/unlock), sans écran. Sans ce cookie, documents et commentaires sont refusés.
+//    Pour changer la clé : nouvelle valeur dans le code d'en-tête des pages Home et Document, son
+//    empreinte ici (VIEWER_KEY_HASH), pousser sur main ; les accès en cours tombent.
+// 2. Publication et modération : code administrateur (empreinte ADMIN_HASH, même procédure).
+const VIEWER_KEY_HASH = "fc4325779a0be9890f32661feca0b53470b768ed78373152458e6dbd6657510b";
 const ADMIN_HASH = "d99b55a5c48b076b6b373515565a0d9bd360ca9358630777ebd5b003069017b8";
 
 const OLD_CLIENT_COOKIE = "sh_c";
+const VIEWER_COOKIE = "sh_v";
 const ADMIN_COOKIE = "sh_a";
 const MAX_AGE = 60 * 60 * 24 * 60; // 60 jours
 
@@ -28,8 +34,19 @@ function readCookie(request: Request, name: string): string {
   return "";
 }
 
-export async function session(request: Request): Promise<{ admin: boolean }> {
-  return { admin: readCookie(request, ADMIN_COOKIE) === (await token(ADMIN_HASH)) };
+export async function isViewerKey(key: string): Promise<boolean> {
+  return (await sha256(key.trim())) === VIEWER_KEY_HASH;
+}
+
+// viewer : le visiteur a ouvert une page Webflow protégée (ou est administrateur).
+export async function session(request: Request): Promise<{ admin: boolean; viewer: boolean }> {
+  const admin = readCookie(request, ADMIN_COOKIE) === (await token(ADMIN_HASH));
+  const viewer = admin || readCookie(request, VIEWER_COOKIE) === (await token(VIEWER_KEY_HASH));
+  return { admin, viewer };
+}
+
+export async function viewerCookies(): Promise<string[]> {
+  return [cookie(VIEWER_COOKIE, await token(VIEWER_KEY_HASH), 60 * 60 * 24 * 30)];
 }
 
 const cookie = (name: string, value: string, maxAge: number) =>
